@@ -1,45 +1,33 @@
-/*********
-  Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
-*********/
+#include "LiquidCrystal_I2C.h"
 
-#include <Wire.h>
- 
+// Construct an LCD object and pass it the 
+// I2C address, width (in characters) and
+// height (in characters). Depending on the
+// Actual device, the IC2 address may change.
+LiquidCrystal_I2C lcd(0x3F, 16, 2);
+
 void setup() {
-  Wire.begin();
-  Serial.begin(115200);
-  Serial.println("\nI2C Scanner");
+
+  // The begin call takes the width and height. This
+  // Should match the number provided to the constructor.
+  lcd.begin(16,2);
+  lcd.init();
+
+  // Turn on the backlight.
+  lcd.backlight();
+
+  // Move the cursor characters to the right and
+  // zero characters down (line 1).
+  lcd.setCursor(5, 0);
+
+  // Print HELLO to the screen, starting at 5,0.
+  lcd.print("HELLO");
+
+  // Move the cursor to the next line and print
+  // WORLD.
+  lcd.setCursor(5, 1);      
+  lcd.print("WORLD");
 }
- 
+
 void loop() {
-  byte error, address;
-  int nDevices;
-  Serial.println("Scanning...");
-  nDevices = 0;
-  for(address = 1; address < 127; address++ ) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      if (address<16) {
-        Serial.print("0");
-      }
-      Serial.println(address,HEX);
-      nDevices++;
-    }
-    else if (error==4) {
-      Serial.print("Unknow error at address 0x");
-      if (address<16) {
-        Serial.print("0");
-      }
-      Serial.println(address,HEX);
-    }    
-  }
-  if (nDevices == 0) {
-    Serial.println("No I2C devices found\n");
-  }
-  else {
-    Serial.println("done\n");
-  }
-  delay(5000);          
 }
