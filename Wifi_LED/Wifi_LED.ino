@@ -2,8 +2,8 @@
 #include "pins.h"
 
 //Constant data
-const char* ssid = "Nihal IPhone";
-const char* password = "nihaalsingh";
+const char* ssid = "potato";
+const char* password = "iotato123";
 const int port = 80;
 const int serial = 115200;
 //create our server
@@ -30,7 +30,8 @@ void setup()
   //Display the IP of "server"
   Serial.println("\nWifi Connected");
   Serial.print("Server IP: ");
-  Serial.print(WiFi.localIP());
+  Serial.println(WiFi.localIP());
+  Serial.println("Waiting for client to connect...");
 }
 
 
@@ -38,8 +39,12 @@ void loop()
 {
   WiFiClient client = server.available();
 
-  if(!client)// Make sure client is connected
+  if(!client)
+  {// Make sure client is connected
+    Serial.print("*");
     return;
+
+  }
 
     Serial.println("Client Connected!");
 
