@@ -1,90 +1,145 @@
+//libaries
 #include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+//local
 #include "pins.h"
 
+//+ to 3v, - to G, out to d4
 //Constant data
 const char* ssid = "potato";
 const char* password = "iotato123";
 const int port = 80;
 const int serial = 115200;
+const char* mqtt_server = "broker.mqtt-dashboard.com";
+
+
+//create dht 
+DHT dht;
+
 //create our server
-WiFiServer server(port);
+//WiFiServer server(port);
+WiFiClient espClient;
+
+// use http://www.hivemq.com/demos/websocket-client/
+// Topic lightConnection
+//Pub Sub Client 
+PubSubClient client(espClient);
+long lastMsg = 0;
+char msg[50];
+int value = 0;
+
+
 
 void setup() 
 {
+
+  
    Serial.begin(serial);
    delay(10); // Allow serial time to start
    pinMode(D7,OUTPUT);//asign D7 pin
-   digitalWrite(D7,LOW);//turn off the LED
+   //commented out to test temp
+   setup_wifi();
+   dht.setup(2);
+   //Start The mqtt_server
+   client.setServer(mqtt_server, 1883);
+   client.setCallback(callback);
+  
+}
 
-   Serial.print("\n Attempting to connect to :");
-   Serial.println(ssid);
-   
-   WiFi.begin(ssid,password);
+void setup_wifi() {
 
-  //output a * every .5 seconds until we connect
-   while (WiFi.status() != WL_CONNECTED) {
+  delay(10);
+  //Connect to Wifi
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print("*");
   }
 
-  //Display the IP of "server"
-  Serial.println("\nWifi Connected");
-  Serial.print("Server IP: ");
+
+  Serial.println("\nWiFi connected");
+  Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-  Serial.println("Waiting for client to connect...");
 }
 
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1') {
+    digitalWrite(D7, LOW);   // Turn the LED on (Note that LOW is the voltage level
+    // but actually the LED is on; this is because
+    // it is active low on the ESP-01)
+  } else {
+    digitalWrite(D7, HIGH);  // Turn the LED off by making the voltage HIGH
+  }
+
+}
+
+void reconnect() {
+  // Loop until connected to server
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Create a random client ID
+    String clientId = "ESP8266Client-";
+    clientId += String(random(0xffff), HEX);
+    // Attempt to connect
+    if (client.connect(clientId.c_str())) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      client.publish("outTopic", "I am Awake");
+
+      client.subscribe("lightConnection");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
 
 void loop() 
 {
-  WiFiClient client = server.available();
+  delay(1000);
+  float humidity = dht.getHumidity();
+  float temperature = dht.getTemperature();
 
-  if(!client)
-  {// Make sure client is connected
-    Serial.print("*");
-    return;
-
+  Serial.print(dht.getStatusString());
+  Serial.print("\nhumidity: ");
+  Serial.print(humidity, 1);
+  Serial.print("\nTemp: ");
+  Serial.print(temperature, 1);
+  Serial.print("\n");
+  
+  if (!client.connected()) {
+    reconnect();
   }
+  client.loop();
 
-    Serial.println("Client Connected!");
-
-    while(!client.available()) // wait for the client to be ready
-      delay(50);
-
-    //get the client data
-    String request = client.readStringUntil('r');
-    Serial.println(request);
-    client.flush();
-    
-    //Use client data
-
-    int ledValue = LOW;
-
-    if(request.indexOf("/LED=ON") != 1)//if client wants the led on
-        ledValue = HIGH;
-
-    //write the led value
-    digitalWrite(D7, ledValue);
-
-    //Generate the HTML page for the client
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println(""); 
-    client.println("<!DOCTYPE HTML>");
-    client.println("<html>");
-    client.println("Led Status:");
-    
-    if(ledValue == HIGH)
-      client.print("On");
-    else 
-      client.print("Off");
-
-      //end the HTML doc
-     client.println("<br><br>");
-     client.println("<a href=\"/LED=ON\"\"><button>On </button></a>");
-     client.println("<a href=\"/LED=OFF\"\"><button>Off </button></a><br />");  
-     client.println("</html>");
-     delay(50);
-     Serial.println("Client disonnected");
-    
+  long now = millis();
+  if (now - lastMsg > 2000) {
+    lastMsg = now;
+    ++value;
+    // We cna send a messgge to make sure we are connected
+    snprintf (msg, 50, "I am Awake! #%ld", value);
+    Serial.print("Publish message: ");
+    Serial.println(msg);
+    client.publish("outTopic", msg);
+  }
+  
 }
+
