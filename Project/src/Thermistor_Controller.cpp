@@ -52,10 +52,9 @@ float Thermistor_Controller:: Get_Resistance()
         average += analogRead(_thermistorPin);
         delay(10);
     }
-    ;
-    //return the average of readings
-     average /= _numSamples;
-         // convert the value to resistance
+    
+    average /= _numSamples;
+    // convert the value to resistance
     average = 1023 / average - 1;
     return SERIESRESISTOR / average;
 }
