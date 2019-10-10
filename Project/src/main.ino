@@ -1,21 +1,22 @@
-
-#include "DHT_Controller.h"
 #include "LED_Controller.h"
 #include "WiFi_Controller.h"
 #include "Thermistor_Controller.h"
 #include <PubSubClient.h>
+#include "DHT.h"
 
 
-DHT_Controller _dht(D4); // set up DHT use use pin D4
-LED_Controller _ledController(D7); // set up led controler to use pin D7
-WiFi_Controller _wifi("potato", "iotato123"); // set up SSID and password
-Thermistor_Controller _thermistor(A0,10);//pin A0 and 10 samples for averaging
 //Const data
 const char * mqtt_server = "broker.mqtt-dashboard.com";
 const int serial = 115200;
 const char* subscribeTopic = "TRU/COMP4980/IOT/Groups/8/subscribe";
 const char* publishTopic = "TRU/COMP4980/IOT/Groups/8/publish";
 const char* clientID = "TRU/COMP4980/IOT/Groups/8/clientID";
+
+//Controllers 
+LED_Controller _ledController(D7); // set up led controler to use pin D7
+WiFi_Controller _wifi("potato", "iotato123"); // set up SSID and password
+Thermistor_Controller _thermistor(A0,10);//pin A0 and 10 samples for averaging
+DHT dht;
 
 // use http://www.hivemq.com/demos/websocket-client/
 
@@ -28,17 +29,17 @@ PubSubClient MQTT_Client(__WIFIClient);
 long lastMsg = 0;
 char msg[50];
 int value = 0;
-
 void setup() {
 
   Serial.begin(serial);
   delay(1000);
   //turn the led on
   _ledController.Set_Status(1);
+  dht.setup(D4,DHT::DHT_MODEL_t::DHT22);
 
   Serial.println("");
   Serial.printf("Led Status : %d\n" , _ledController.Get_Status());
-  Serial.printf("Current Digital Temp : %gC\n", _dht.Get_Temperature());
+  Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
   Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
   
   //set to loop debug
@@ -58,19 +59,13 @@ void setup() {
 void debug()
 {
   Serial.printf("Led Status : %d\n" , _ledController.Get_Status());
-  Serial.printf("Current Digital Temp : %gC\n", _dht.Get_Temperature());
+  Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
   Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
     Serial.printf("Current Analog Resistence: %gC\n", _thermistor.Get_Resistance());
   delay(1000);
   debug();
 }
 void loop() {
-
-    //Get Hum and Temp
-    //Serial.print("Hum:");
-    //Serial.println(_dht.Get_Humidity());
-    //Serial.print("Temp:");
-    //Serial.println(_dht.Get_Temperature());
 
     if (!MQTT_Client.connected()) {
         reconnect();
@@ -84,7 +79,7 @@ void loop() {
         lastMsg = now;
         ++value;
         // We cna send a messgge to make sure we are connected
-        snprintf(msg, 50, "Temperature : %g", _dht.Get_Temperature());
+        snprintf(msg, 50, "Temperature : %g", dht.getTemperature());
         Serial.print("Publish message: ");
         Serial.println(msg);
         MQTT_Client.publish(publishTopic, msg);
