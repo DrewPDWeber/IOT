@@ -2,7 +2,7 @@
 #include <Arduino.h>
 //reading at 22.8 ~= 12150
 //reading at 0C ~= 14600
-
+//reading at 21.6 ~= 12414
 //Hold user input data
 int _thermistorPin;
 int _numSamples = 10;
@@ -12,11 +12,11 @@ int _numSamples = 10;
 
 //http://www.giangrandi.ch/electronics/ntc/ntc.shtml 
 //used for calculations 
-const int BCOEFFICIENT = 651;
+const int BCOEFFICIENT = 604;
 const int SERIESRESISTOR = 10000;
 //Resistence at 25C
 const int NOMINALTEMPERATURE = 25;
-const int THERMISTORNOMINAL = 11950;
+const int THERMISTORNOMINAL = 12130;
 
 
 Thermistor_Controller::Thermistor_Controller(int pin)
