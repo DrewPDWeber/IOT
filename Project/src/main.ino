@@ -6,10 +6,16 @@
 
 
 //Const data
-const char * mqtt_server = "broker.mqtt-dashboard.com";
+const char* mqtt_server = "192.168.1.101";
+const char* mqtt_user = "test";
+const char* mqtt_password = "test";
+
 const int serial = 115200;
+
+//other crap
+
 const char* subscribeTopic = "TRU/COMP4980/IOT/Groups/8/subscribe";
-const char* publishTopic = "TRU/COMP4980/IOT/Groups/8/publish";
+const char* publishTopic = "test";
 const char* clientID = "TRU/COMP4980/IOT/Groups/8/clientID";
 
 //Controllers 
@@ -18,7 +24,6 @@ WiFi_Controller _wifi("potato", "iotato123"); // set up SSID and password
 Thermistor_Controller _thermistor(A0,10);//pin A0 and 10 samples for averaging
 DHT dht;
 
-// use http://www.hivemq.com/demos/websocket-client/
 
 
 //classes
@@ -29,9 +34,29 @@ PubSubClient MQTT_Client(__WIFIClient);
 long lastMsg = 0;
 char msg[50];
 int value = 0;
-
 const int DHT_PIN = D4;
-void setup() {
+
+//structures
+/*
+typedef enum
+{
+  LightEmittingDiode,
+  Temperature,
+  Humidity
+}
+MQTT_RECV_TOPIC;
+
+typedef enum
+{
+  off = 0,
+  on
+}
+MQTT_RECV_MESSAGE;
+*/
+
+
+void setup()
+ {
 
   Serial.begin(serial);
   delay(1000);
@@ -45,7 +70,7 @@ void setup() {
   Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
   
   //set to loop debug
-  debug();
+ // debug();
 
 
   //set up wifi
@@ -53,20 +78,23 @@ void setup() {
 
   //Set up MQTT client connection
   MQTT_Client.setServer(mqtt_server, 1883);
-  MQTT_Client.setCallback(recv);
+  //MQTT_Client.setCallback(recv);
 
   // start the loop
   loop();
 }
+
 void debug()
 {
   Serial.printf("Led Status : %d\n" , _ledController.Get_Status());
   Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
   Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
-    Serial.printf("Current Analog Resistence: %gC\n", _thermistor.Get_Resistance());
+  Serial.printf("Current Analog Resistence: %gC\n", _thermistor.Get_Resistance());
   delay(1000);
-  debug();
+  debug();// bassicly a goto 
 }
+
+//publish loop
 void loop() {
 
     if (!MQTT_Client.connected()) {
@@ -75,23 +103,23 @@ void loop() {
     //Loop connection
     MQTT_Client.loop();
 
-    //post message every 2 seconds
+    //post message every 10 seconds
     long now = millis();
-    if (now - lastMsg > 2000) {
+    if (now - lastMsg > 10000) 
+    {
         lastMsg = now;
         ++value;
-        // We cna send a messgge to make sure we are connected
         snprintf(msg, 50, "Temperature : %g", dht.getTemperature());
         Serial.print("Publish message: ");
         Serial.println(msg);
-        MQTT_Client.publish(publishTopic, msg);
+        MQTT_Client.publish(publishTopic,msg,true);
     }
 
 }
 
-//MQTT section 
-
-void recv(char * topic, byte * payload, unsigned int length) {
+/*
+void recv(char * topic, byte * payload, unsigned int length) 
+{
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -101,24 +129,56 @@ void recv(char * topic, byte * payload, unsigned int length) {
   Serial.println();
 
   // Switch on the LED if an 1 was received as first character
-  if ((char) payload[0] == '1') {
+
+  switch((int)((char)payload[0]))
+  {
+    case MQTT_RECV_TOPIC::LightEmittingDiode:
+      switch((int)((char)payload[1]))
+      {
+        case MQTT_RECV_MESSAGE::off:
+           Serial.print("TURN ON LED");
+          _ledController.Set_Status(1);
+          break;
+
+        case MQTT_RECV_MESSAGE::on:
+           _ledController.Set_Status(0);
+          Serial.print("TURN OFF LED");
+          break;
+      }
+      break;
+    
+    case MQTT_RECV_TOPIC::Humidity:
+    
+      break;
+    
+    case MQTT_RECV_TOPIC::Temperature:
+    
+      break;
+    
+  }
+  
+  if ((char) payload[0] == '1')
+   {
      Serial.print("TURN ON LED");
     _ledController.Set_Status(1);
-  } else {
+  } else
+   {
     _ledController.Set_Status(0);
      Serial.print("TURN OFF LED");
   }
-
+  
 }
+*/
 
-void reconnect() {
+void reconnect()
+ {
   // Loop until connected to server
   while (!MQTT_Client.connected()) 
   {
     Serial.print("Attempting MQTT connection...");
 
     // Attempt to connect
-    if (MQTT_Client.connect(clientID)) 
+    if (MQTT_Client.connect(clientID,mqtt_user,mqtt_password)) 
     {
       Serial.println("connected");
       // Once connected, publish an announcement...

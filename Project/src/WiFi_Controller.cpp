@@ -32,7 +32,6 @@ void WiFi_Controller::Connect()
 {
     Serial.print("Connecting to ");
     Serial.println(_ssid);
-
     WiFi.begin(_ssid, _password);
 
     while (WiFi.status() != WL_CONNECTED)
