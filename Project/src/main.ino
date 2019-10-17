@@ -2,6 +2,7 @@
 #include "WiFi_Controller.h"
 #include "Thermistor_Controller.h"
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include "DHT.h"
 
 
@@ -14,7 +15,7 @@ const int serial = 115200;
 
 //other crap
 
-const char* subscribeTopic = "TRU/COMP4980/IOT/Groups/8/subscribe";
+//const char* subscribeTopic = "TRU/COMP4980/IOT/Groups/8/subscribe";
 const char* publishTopic = "test";
 const char* clientID = "TRU/COMP4980/IOT/Groups/8/clientID";
 
@@ -96,7 +97,6 @@ void debug()
 
 //publish loop
 void loop() {
-
     if (!MQTT_Client.connected()) {
         reconnect();
     }
@@ -104,15 +104,30 @@ void loop() {
     MQTT_Client.loop();
 
     //post message every 10 seconds
-    long now = millis();
-    if (now - lastMsg > 10000) 
+     long now = millis();
+
+    if (now - lastMsg > 5000) 
     {
         lastMsg = now;
-        ++value;
-        snprintf(msg, 50, "Temperature : %g", dht.getTemperature());
-        Serial.print("Publish message: ");
-        Serial.println(msg);
-        MQTT_Client.publish(publishTopic,msg,true);
+        float temp = dht.getTemperature();
+        float hum = dht.getHumidity();
+        if(!isnan(temp) && !isnan(hum))
+        {
+          StaticJsonBuffer<200> jsonBuffer;
+          JsonObject& root = jsonBuffer.createObject();
+          // INFO: the data must be converted into a string; a problem occurs when using floats...
+          root["temperature"] = (String)(dht.getTemperature());
+          root["humidity"] = (String)(dht.getHumidity());
+          root.prettyPrintTo(Serial);
+          Serial.println("");
+
+          char data[200];
+          root.printTo(data, root.measureLength() + 1);
+          MQTT_Client.publish(publishTopic, data, true);
+         
+        }
+        else
+          Serial.printf("NULL FOUND %gC %g% \n", temp,hum);
     }
 
 }
@@ -184,7 +199,7 @@ void reconnect()
       // Once connected, publish an announcement...
       MQTT_Client.publish(publishTopic, "I am Awake");
 
-      MQTT_Client.subscribe(subscribeTopic);
+      //MQTT_Client.subscribe(subscribeTopic);
     } 
 
     else 
