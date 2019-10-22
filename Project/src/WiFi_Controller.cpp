@@ -1,13 +1,14 @@
 #include "WiFi_Controller.h"
 
-char* _ssid;
-char* _password;
+const char* _ssid;
+const char* _password;
 
-WiFi_Controller::WiFi_Controller(char* ssid, char* password)
+WiFi_Controller::WiFi_Controller(const char* ssid, const char* password)
 {
      _ssid = ssid;
     _password = password;
 }
+/*
 char* WiFi_Controller::Get_Password()
 {
     return _password;
@@ -17,17 +18,21 @@ void WiFi_Controller::Set_Password(char* pass)
 {
     _password = pass;
 }
-
-char* WiFi_Controller::Get_SSID()
-{
-   return _ssid;
-}
-
 void WiFi_Controller::Set_SSID(char* ssid)
 {
     _ssid = ssid;
 }
 
+char* WiFi_Controller::Get_SSID()
+{
+   return _ssid;
+}
+*/
+
+const char* WiFi_Controller::Get_SSID()
+{
+   return _ssid;
+}
 void WiFi_Controller::Connect()
 {
     Serial.print("Connecting to ");
@@ -36,7 +41,10 @@ void WiFi_Controller::Connect()
 
     while (WiFi.status() != WL_CONNECTED)
     {
-        delay(500);
+        //sleep for 5000 micro seconds
+        ESP.deepSleep(5000);
+        //wait for 500 ms
+        //delay(500);
         Serial.print("*");
     }
 

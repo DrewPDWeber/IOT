@@ -3,13 +3,15 @@
 class WiFi_Controller
 {
     public :
-     WiFi_Controller(char* ssid, char* password);
-     void Set_SSID(char* ssid);
-     char* Get_SSID(); 
-
+     WiFi_Controller(const char* ssid,const char* password);
+    
+     const char* Get_SSID(); 
+     
+     /*
      void Set_Password(char* pass);
      char* Get_Password();
-
+     void Set_SSID(char* ssid);
+     */
      void Connect();
      void Disconnect();
 };

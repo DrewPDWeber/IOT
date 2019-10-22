@@ -1,60 +1,32 @@
 #include "LED_Controller.h"
 #include "WiFi_Controller.h"
 #include "Thermistor_Controller.h"
-#include <PubSubClient.h>
-#include <ArduinoJson.h>
+#include "MQTT_Controller.h"
 #include "DHT.h"
+#include "ArduinoJson.h"
 
+
+//mqtt data
+char* server = "192.168.1.101";
+char* user = "esp-8266";
+char* password = "rTt6WGYye6X3Hr";
+char* publishTopic = "sensor/freezer";
+char* clientID = "ESP-8266-C1";
+int port = 1883;
 
 //Const data
-const char* mqtt_server = "192.168.1.101";
-const char* mqtt_user = "test";
-const char* mqtt_password = "test";
-
 const int serial = 115200;
+const int DHT_PIN = D4;
+const char* Wifi_Username = "potato";
+const char* Wifi_Password = "iotato123";
 
-//other crap
-
-//const char* subscribeTopic = "TRU/COMP4980/IOT/Groups/8/subscribe";
-const char* publishTopic = "test";
-const char* clientID = "TRU/COMP4980/IOT/Groups/8/clientID";
 
 //Controllers 
-LED_Controller _ledController(D7); // set up led controler to use pin D7
-WiFi_Controller _wifi("potato", "iotato123"); // set up SSID and password
-Thermistor_Controller _thermistor(A0,10);//pin A0 and 10 samples for averaging
+LED_Controller led_Controller(D7); // set up led controler to use pin D7
+WiFi_Controller wifi_Controller(Wifi_Username, Wifi_Password); // set up SSID and password
+Thermistor_Controller thermistor_Controller(A0,10);//pin A0 and 10 samples for averaging
+MQTT_Controller mqtt_Controller(clientID,publishTopic,server,user,password,port);//set up mqtt to use out server and client information
 DHT dht;
-
-
-
-//classes
-WiFiClient __WIFIClient;
-PubSubClient MQTT_Client(__WIFIClient);
-
-//Other vars
-long lastMsg = 0;
-char msg[50];
-int value = 0;
-const int DHT_PIN = D4;
-
-//structures
-/*
-typedef enum
-{
-  LightEmittingDiode,
-  Temperature,
-  Humidity
-}
-MQTT_RECV_TOPIC;
-
-typedef enum
-{
-  off = 0,
-  on
-}
-MQTT_RECV_MESSAGE;
-*/
-
 
 void setup()
  {
@@ -62,55 +34,43 @@ void setup()
   Serial.begin(serial);
   delay(1000);
   //turn the led on
-  _ledController.Set_Status(1);
-  dht.setup(D4,DHT::DHT_MODEL_t::DHT22);
+  led_Controller.Set_Status(1);
+  dht.setup(DHT_PIN,DHT::DHT_MODEL_t::DHT11);
 
   Serial.println("");
-  Serial.printf("Led Status : %d\n" , _ledController.Get_Status());
+  Serial.printf("Led Status : %d\n" , led_Controller.Get_Status());
   Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
+  Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
   
   //set to loop debug
- // debug();
-
+  // debug();
 
   //set up wifi
-  _wifi.Connect();
+  wifi_Controller.Connect();
 
-  //Set up MQTT client connection
-  MQTT_Client.setServer(mqtt_server, 1883);
-  //MQTT_Client.setCallback(recv);
-
-  // start the loop
-  loop();
 }
 
 void debug()
 {
-  Serial.printf("Led Status : %d\n" , _ledController.Get_Status());
+  Serial.printf("Led Status : %d\n" , led_Controller.Get_Status());
   Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  Serial.printf("Current Analog Temp: %gC\n", _thermistor.Get_Temp());
-  Serial.printf("Current Analog Resistence: %gC\n", _thermistor.Get_Resistance());
+  Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
+  Serial.printf("Current Analog Resistence: %gC\n", thermistor_Controller.Get_Resistance());
   delay(1000);
   debug();// bassicly a goto 
 }
 
-//publish loop
-void loop() {
-    if (!MQTT_Client.connected()) {
-        reconnect();
+void loop() 
+{
+    if (!mqtt_Controller.connected()) {
+        mqtt_Controller.connect();
     }
     //Loop connection
-    MQTT_Client.loop();
+    //mqtt_Controller.loop();
 
-    //post message every 10 seconds
-     long now = millis();
-
-    if (now - lastMsg > 5000) 
-    {
-        lastMsg = now;
         float temp = dht.getTemperature();
         float hum = dht.getHumidity();
+
         if(!isnan(temp) && !isnan(hum))
         {
           StaticJsonBuffer<200> jsonBuffer;
@@ -123,92 +83,10 @@ void loop() {
 
           char data[200];
           root.printTo(data, root.measureLength() + 1);
-          MQTT_Client.publish(publishTopic, data, true);
-         
+          mqtt_Controller.publish(data);
         }
+        
         else
           Serial.printf("NULL FOUND %gC %g% \n", temp,hum);
     }
 
-}
-
-/*
-void recv(char * topic, byte * payload, unsigned int length) 
-{
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char) payload[i]);
-  }
-  Serial.println();
-
-  // Switch on the LED if an 1 was received as first character
-
-  switch((int)((char)payload[0]))
-  {
-    case MQTT_RECV_TOPIC::LightEmittingDiode:
-      switch((int)((char)payload[1]))
-      {
-        case MQTT_RECV_MESSAGE::off:
-           Serial.print("TURN ON LED");
-          _ledController.Set_Status(1);
-          break;
-
-        case MQTT_RECV_MESSAGE::on:
-           _ledController.Set_Status(0);
-          Serial.print("TURN OFF LED");
-          break;
-      }
-      break;
-    
-    case MQTT_RECV_TOPIC::Humidity:
-    
-      break;
-    
-    case MQTT_RECV_TOPIC::Temperature:
-    
-      break;
-    
-  }
-  
-  if ((char) payload[0] == '1')
-   {
-     Serial.print("TURN ON LED");
-    _ledController.Set_Status(1);
-  } else
-   {
-    _ledController.Set_Status(0);
-     Serial.print("TURN OFF LED");
-  }
-  
-}
-*/
-
-void reconnect()
- {
-  // Loop until connected to server
-  while (!MQTT_Client.connected()) 
-  {
-    Serial.print("Attempting MQTT connection...");
-
-    // Attempt to connect
-    if (MQTT_Client.connect(clientID,mqtt_user,mqtt_password)) 
-    {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      MQTT_Client.publish(publishTopic, "I am Awake");
-
-      //MQTT_Client.subscribe(subscribeTopic);
-    } 
-
-    else 
-    {
-      Serial.print("failed, rc=");
-      Serial.print(MQTT_Client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
