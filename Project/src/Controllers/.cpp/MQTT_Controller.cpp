@@ -1,4 +1,4 @@
-#include "MQTT_Controller.h"
+#include "../.h/MQTT_Controller.h"
 
 //MQTT data
 char* mqtt_server;

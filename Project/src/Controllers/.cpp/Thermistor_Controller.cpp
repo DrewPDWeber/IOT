@@ -1,4 +1,4 @@
-#include "Thermistor_Controller.h"
+#include "../.h/Thermistor_Controller.h"
 #include <Arduino.h>
 //reading at 22.8 ~= 12150
 //reading at 0C ~= 14600

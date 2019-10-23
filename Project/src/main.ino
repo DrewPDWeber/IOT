@@ -1,7 +1,7 @@
-#include "LED_Controller.h"
-#include "WiFi_Controller.h"
-#include "Thermistor_Controller.h"
-#include "MQTT_Controller.h"
+#include "Controllers/.h/LED_Controller.h"
+#include "Controllers/.h/WiFi_Controller.h"
+#include "Controllers/.h/Thermistor_Controller.h"
+#include "Controllers/.h/MQTT_Controller.h"
 #include "DHT.h"
 #include "ArduinoJson.h"
 
