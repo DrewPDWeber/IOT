@@ -1,3 +1,6 @@
+# 1 "C:\\Users\\Drew\\AppData\\Local\\Temp\\tmpgf4g3rck"
+#include <Arduino.h>
+# 1 "C:/Users/Drew/Documents/GitHub/IOT/Project/src/main.ino"
 #include "c++/.h/LED_Controller.h"
 
 #include "c++/.h/WiFi_Controller.h"
@@ -11,7 +14,7 @@
 #include "ArduinoJson.h"
 
 
-//mqtt data
+
 char * server = (char*)"192.168.1.101";
 char * user = (char*)"esp-8266";
 char * password = (char*)"rTt6WGYye6X3Hr";
@@ -19,55 +22,49 @@ char * publishTopic = (char*)"sensor/freezer";
 char * clientID = (char*)"ESP-8266-C1";
 int port = 1883;
 
-//Const data
+
 const int serial = 115200;
 const int DHT_PIN = D1;
 const char * Wifi_Username = (char*)"potato";
 const char * Wifi_Password = (char*)"iotato123";
 const int MAX_TEMP_CHECKS = 10;
 
-//Controllers 
-LED_Controller led_Controller(D7); // set up led controler to use pin D7
-WiFi_Controller wifi_Controller(Wifi_Username, Wifi_Password); // set up SSID and password
-//Thermistor_Controller thermistor_Controller(A0, 10); //pin A0 and 10 samples for averaging
-MQTT_Controller mqtt_Controller(clientID, publishTopic, server, user, password, port); //set up mqtt to use out server and client information
-DHT dht;
 
+LED_Controller led_Controller(D7);
+WiFi_Controller wifi_Controller(Wifi_Username, Wifi_Password);
+
+MQTT_Controller mqtt_Controller(clientID, publishTopic, server, user, password, port);
+DHT dht;
+void setup();
+void debug();
+void loop();
+#line 36 "C:/Users/Drew/Documents/GitHub/IOT/Project/src/main.ino"
 void setup() {
 
   Serial.begin(serial);
   delay(1000);
-  //turn the led on
+
   led_Controller.Set_Status(1);
   dht.setup(DHT_PIN, DHT::DHT_MODEL_t::DHT22);
 
   Serial.println("");
   Serial.println("");
-
-  //Serial.println("");
-  //Serial.printf("Led Status : %d\n", led_Controller.Get_Status());
-  //Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
-
-  //set to loop debug
-  //debug();
-
-  //set up wifi
+# 56 "C:/Users/Drew/Documents/GitHub/IOT/Project/src/main.ino"
   wifi_Controller.Connect();
 
 }
 
 void debug() {
-  //Serial.printf("Led Status : %d\n" , led_Controller.Get_Status());
-  //Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
-  //Serial.printf("Current Analog Resistence: %gC\n", thermistor_Controller.Get_Resistance());
+
+
+
+
 
   int checks = 5;
 
   float tempSum = 0;
   float humSum = 0;
-  //get 5 valid non nan readings
+
   for (int i = 0; i < checks; delay(100)) {
     float tempHum = dht.getHumidity();
     float tempTemp = dht.getTemperature();
@@ -80,19 +77,19 @@ void debug() {
     {
       Serial.println("temperature or humidity nan round, wait 100ms");
     }
-    
+
   }
-  //Average readings
+
   float temp = tempSum / checks;
   float hum = humSum / checks;
 
   Serial.printf("Average Digital temperature : %gC\n", temp);
   Serial.printf("Average Digital humidity : %gC\n", hum);
-  
-  Serial.printf("Entering Deep Sleep");
-  ESP.deepSleep(60e6); // 60 seconds
 
-  debug(); // bassicly a goto 
+  Serial.printf("Entering Deep Sleep");
+  ESP.deepSleep(60e6);
+
+  debug();
 }
 
 void loop() {
@@ -103,9 +100,9 @@ void loop() {
   int failedChecks = 0;
   float tempSum = 0;
   float humSum = 0;
-  //get 5 valid non nan readings
-  //wait .5 seconds between readings
-  for (int i = 0; i < checks; delay(500)) 
+
+
+  for (int i = 0; i < checks; delay(500))
   {
     if(failedChecks++ >= MAX_TEMP_CHECKS)
     {
@@ -123,9 +120,9 @@ void loop() {
     {
       Serial.println("temperature or humidity nan round, wait 100ms");
     }
-    
+
   }
-  //Average readings
+
   float temp = tempSum / checks;
   float hum = humSum / checks;
 
@@ -134,7 +131,7 @@ void loop() {
 
   StaticJsonBuffer < 200 > jsonBuffer;
   JsonObject & root = jsonBuffer.createObject();
-  // INFO: the data must be converted into a string; a problem occurs when using floats...
+
   root["temperature"] = (String)(temp);
   root["humidity"] = (String)(hum);
   root.prettyPrintTo(Serial);
@@ -144,8 +141,8 @@ void loop() {
   root.printTo(data, root.measureLength() + 1);
   mqtt_Controller.publish(data);
 
-  //sleep for 50000 micro seconds
+
   Serial.printf("Entering Deep Sleep");
-  ESP.deepSleep(60e6);//60 seconds
-  delay(5000); //makes sure no looping occurs
+  ESP.deepSleep(60e6);
+  delay(5000);
 }

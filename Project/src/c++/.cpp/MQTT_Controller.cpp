@@ -12,6 +12,8 @@ int mqtt_port;
 WiFiClient MQTT_WIFIClient;
 PubSubClient MQTT_Client(MQTT_WIFIClient);
 
+const int MAX_MQTT_TRIES = 5;
+
 
  MQTT_Controller::MQTT_Controller(char* clientID,char* topic,char* server,char* username,char* password,int port)
  {
@@ -36,32 +38,7 @@ PubSubClient MQTT_Client(MQTT_WIFIClient);
     Serial.println("Checking MQTT server connection");
     MQTT_Controller::connect(); // connect to mqtt server
 
-    /*  while (!MQTT_Client.connected()) 
-      {
-        Serial.print("Attempting MQTT connection...\n");
-
-        // Attempt to connect
-        if (MQTT_Client.connect(mqtt_clientID,mqtt_user,mqtt_password)) 
-        {
-          Serial.println("connected");
-          // Once connected, publish an announcement...
-          MQTT_Client.publish(mqtt_topic, "Connected to MQTT server");
-
-          //MQTT_Client.subscribe(subscribeTopic);
-        } 
-        
-        else 
-        {
-          Serial.print("failed, rc=");
-          Serial.print(MQTT_Client.state());
-          Serial.println(" try again in 5 seconds");
-          // Wait 5 seconds before retrying
-          delay(5000);
-        }
-      }
-      */
-
-      Serial.printf("Publishing topic %s content: %s",mqtt_topic,(char*)content);
+      Serial.printf("Publishing topic %s content: %s\n",mqtt_topic,(char*)content);
       MQTT_Client.publish(mqtt_topic, content);
       //allow message to time to be sent
       delay(1000);
@@ -76,10 +53,17 @@ void MQTT_Controller::connect()
     Serial.print("MQTT already connected");
     return;
   }
+  int tries = 0;
 
   // Loop until connected to server
   while (!MQTT_Client.connected()) 
   {
+    if(tries++ >= MAX_MQTT_TRIES)
+    {
+      Serial.println("MQTT MAX tries occured.");
+      return;
+    }
+
     Serial.print("Attempting MQTT connection...\n");
 
     // Attempt to connect
