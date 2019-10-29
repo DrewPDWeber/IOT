@@ -41,10 +41,8 @@ void WiFi_Controller::Connect()
 
     while (WiFi.status() != WL_CONNECTED)
     {
-        //sleep for 5000 micro seconds
-        ESP.deepSleep(5000);
         //wait for 500 ms
-        //delay(500);
+        delay(500);
         Serial.print("*");
     }
 
