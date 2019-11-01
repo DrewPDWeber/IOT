@@ -8,6 +8,8 @@
 
 #include "DHT.h"
 
+#include "c++/.h/DS18B20_Controller.h"
+
 #include "ArduinoJson.h"
 
 
@@ -31,6 +33,10 @@ LED_Controller led_Controller(D7); // set up led controler to use pin D7
 WiFi_Controller wifi_Controller(Wifi_Username, Wifi_Password); // set up SSID and password
 //Thermistor_Controller thermistor_Controller(A0, 10); //pin A0 and 10 samples for averaging
 MQTT_Controller mqtt_Controller(clientID, publishTopic, server, user, password, port); //set up mqtt to use out server and client information
+
+DS18B20_Controller DS18B20(D8);
+
+
 DHT dht;
 
 void setup() {
@@ -50,18 +56,28 @@ void setup() {
   //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
 
   //set to loop debug
-  //debug();
+  debug();
 
-  //set up wifi
-  wifi_Controller.Connect();
+  //set up wifi_Controller
+  //If not connected go to sleep
+  if(!wifi_Controller.Connect())
+  {
+    //sleep for 50000 micro seconds
+    Serial.printf("Entering Deep Sleep");
+    ESP.deepSleep(60e6);//60 seconds
+    delay(5000); //makes sure no looping occurs
+    return;
+  }
 
 }
 
-void debug() {
+void debug() 
+{
   //Serial.printf("Led Status : %d\n" , led_Controller.Get_Status());
   //Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
   //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
   //Serial.printf("Current Analog Resistence: %gC\n", thermistor_Controller.Get_Resistance());
+
 
   int checks = 5;
 
@@ -87,13 +103,17 @@ void debug() {
   float hum = humSum / checks;
 
   Serial.printf("Average Digital temperature : %gC\n", temp);
-  Serial.printf("Average Digital humidity : %gC\n", hum);
   
-  Serial.printf("Entering Deep Sleep");
-  ESP.deepSleep(60e6); // 60 seconds
+  Serial.printf("New temp reading %g C\n",DS18B20.Get_Temp());
+  
+  //Serial.printf("Average Digital humidity : %gC\n", hum);
+  delay(1000);
+  //Serial.printf("Entering Deep Sleep");
+  //ESP.deepSleep(60e6); // 60 seconds
 
-  debug(); // bassicly a goto 
+  debug(); // 
 }
+
 
 void loop() {
 

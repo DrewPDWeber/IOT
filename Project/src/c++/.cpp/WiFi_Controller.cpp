@@ -33,7 +33,7 @@ const char* WiFi_Controller::Get_SSID()
 {
    return _ssid;
 }
-void WiFi_Controller::Connect()
+bool WiFi_Controller::Connect()
 {
     Serial.print("Connecting to ");
     Serial.println(_ssid);
@@ -45,7 +45,7 @@ void WiFi_Controller::Connect()
             if(tries++ >=  MAX_WIFI_TRIES)
             {
                 Serial.print("Max WIFI tries occured");
-                return;
+                return false;
             }
         
         //wait for 500 ms
@@ -54,6 +54,7 @@ void WiFi_Controller::Connect()
     }
 
     Serial.println("\nWiFi connected");
+    return true;
     //Serial.print("IP address: ");
     //Serial.println(WiFi.localIP());
     
