@@ -6,12 +6,13 @@
 
 #include "c++/.h/MQTT_Controller.h"
 
-#include "DHT.h"
+//#include "DHT.h"
 
 #include "c++/.h/DS18B20_Controller.h"
 
 #include "ArduinoJson.h"
 
+#define debug // put into debug mode
 
 //mqtt data
 char * server = (char*)"192.168.1.101";
@@ -34,138 +35,94 @@ WiFi_Controller wifi_Controller(Wifi_Username, Wifi_Password); // set up SSID an
 //Thermistor_Controller thermistor_Controller(A0, 10); //pin A0 and 10 samples for averaging
 MQTT_Controller mqtt_Controller(clientID, publishTopic, server, user, password, port); //set up mqtt to use out server and client information
 
-DS18B20_Controller DS18B20(D8);
+DS18B20_Controller DS18B20(D2);
 
 
-DHT dht;
+//DHT dht;
 
-void setup() {
+void setup()
+{
 
   Serial.begin(serial);
   delay(1000);
   //turn the led on
   led_Controller.Set_Status(1);
-  dht.setup(DHT_PIN, DHT::DHT_MODEL_t::DHT22);
 
   Serial.println("");
   Serial.println("");
-
-  //Serial.println("");
-  //Serial.printf("Led Status : %d\n", led_Controller.Get_Status());
-  //Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
 
   //set to loop debug
-  debug();
-
-  //set up wifi_Controller
-  //If not connected go to sleep
-  if(!wifi_Controller.Connect())
+  #ifdef debug
+  while(true)
   {
+      float tempAVG = getAverageTemp(5);
+      Serial.printf("Averagte temperature reading %g C\n",tempAVG);
+      delay(1000);
+  }
+  #endif
+  
+
+  //Attempt to connect to wifi
+  if(!wifi_Controller.Connect(10))
+  {
+      //Get the avaerage temp for 5 values
+      float averageTemp = getAverageTemp(5);
+      
+      //Create json object to send via JSON
+      StaticJsonBuffer < 200 > jsonBuffer;
+      JsonObject & root = jsonBuffer.createObject();
+      // INFO: the data must be converted into a string; a problem occurs when using floats...
+      root["temperature"] = (String)(averageTemp);
+      //root["humidity"] = (String)(hum);
+      root.prettyPrintTo(Serial);
+      
+      Serial.println("");
+      //Convert Json object to char[]
+      char data[200];
+      root.printTo(data, root.measureLength() + 1);
+
+      //publish data to mqtt server
+      mqtt_Controller.publish(data);
+    }
+
+
     //sleep for 50000 micro seconds
     Serial.printf("Entering Deep Sleep");
     ESP.deepSleep(60e6);//60 seconds
     delay(5000); //makes sure no looping occurs
-    return;
-  }
-
 }
 
-void debug() 
+float getAverageTemp(int checks)
 {
-  //Serial.printf("Led Status : %d\n" , led_Controller.Get_Status());
-  //Serial.printf("Current Digital Temp : %gC\n", dht.getTemperature());
-  //Serial.printf("Current Analog Temp: %gC\n", thermistor_Controller.Get_Temp());
-  //Serial.printf("Current Analog Resistence: %gC\n", thermistor_Controller.Get_Resistance());
+  float tempSum{0};
+  int failedChecks{0};
 
-
-  int checks = 5;
-
-  float tempSum = 0;
-  float humSum = 0;
-  //get 5 valid non nan readings
-  for (int i = 0; i < checks; delay(100)) {
-    float tempHum = dht.getHumidity();
-    float tempTemp = dht.getTemperature();
-    if (!isnan(tempHum) && !isnan(tempTemp)) {
-      tempSum += tempTemp;
-      humSum += tempHum;
-      i++;
-    }
-    else
+    for (int i = 0; i < checks; delay(50)) 
     {
-      Serial.println("temperature or humidity nan round, wait 100ms");
+      if(failedChecks >= MAX_TEMP_CHECKS)
+      {
+          Serial.println("Max attempts to get temperature and humidity reached");
+          return(-127);
+      }
+      float tempTemp = DS18B20.Get_Temp();
+      //only use temp if it is not the default value -127 or nan
+      if (!isnan(tempTemp) && tempTemp > -127) 
+      {
+        tempSum += tempTemp;
+        i++;
+      }
+      else
+      {
+        Serial.println("Invalid temperature reading, waiting 100ms");
+        failedChecks++;
+      }
+      
     }
-    
-  }
-  //Average readings
-  float temp = tempSum / checks;
-  float hum = humSum / checks;
-
-  Serial.printf("Average Digital temperature : %gC\n", temp);
-  
-  Serial.printf("New temp reading %g C\n",DS18B20.Get_Temp());
-  
-  //Serial.printf("Average Digital humidity : %gC\n", hum);
-  delay(1000);
-  //Serial.printf("Entering Deep Sleep");
-  //ESP.deepSleep(60e6); // 60 seconds
-
-  debug(); // 
+    //Average readings
+    return (tempSum / checks);
 }
 
 
 void loop() {
-
-  Serial.println("");
-  Serial.println("");
-  int checks = 5;
-  int failedChecks = 0;
-  float tempSum = 0;
-  float humSum = 0;
-  //get 5 valid non nan readings
-  //wait .5 seconds between readings
-  for (int i = 0; i < checks; delay(500)) 
-  {
-    if(failedChecks++ >= MAX_TEMP_CHECKS)
-    {
-        Serial.println("Max attempts to get temperature and humidity reached");
-        return;
-    }
-    float tempHum = dht.getHumidity();
-    float tempTemp = dht.getTemperature();
-    if (!isnan(tempHum) && !isnan(tempTemp)) {
-      tempSum += tempTemp;
-      humSum += tempHum;
-      i++;
-    }
-    else
-    {
-      Serial.println("temperature or humidity nan round, wait 100ms");
-    }
-    
-  }
-  //Average readings
-  float temp = tempSum / checks;
-  float hum = humSum / checks;
-
-  Serial.printf("Average Digital temperature : %gC\n", temp);
-  Serial.printf("Average Digital humidity : %gC\n", hum);
-
-  StaticJsonBuffer < 200 > jsonBuffer;
-  JsonObject & root = jsonBuffer.createObject();
-  // INFO: the data must be converted into a string; a problem occurs when using floats...
-  root["temperature"] = (String)(temp);
-  root["humidity"] = (String)(hum);
-  root.prettyPrintTo(Serial);
-  Serial.println("");
-
-  char data[200];
-  root.printTo(data, root.measureLength() + 1);
-  mqtt_Controller.publish(data);
-
-  //sleep for 50000 micro seconds
-  Serial.printf("Entering Deep Sleep");
-  ESP.deepSleep(60e6);//60 seconds
-  delay(5000); //makes sure no looping occurs
+  return;  //not using loop as we want to save power, only setup needed as we deepsleep
 }

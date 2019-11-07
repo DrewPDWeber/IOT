@@ -2,7 +2,7 @@
 
 const char* _ssid;
 const char* _password;
-const int MAX_WIFI_TRIES = 20;
+
 WiFi_Controller::WiFi_Controller(const char* ssid, const char* password)
 {
      _ssid = ssid;
@@ -33,7 +33,7 @@ const char* WiFi_Controller::Get_SSID()
 {
    return _ssid;
 }
-bool WiFi_Controller::Connect()
+bool WiFi_Controller::Connect(int attempts)
 {
     Serial.print("Connecting to ");
     Serial.println(_ssid);
@@ -42,7 +42,7 @@ bool WiFi_Controller::Connect()
 
     while (WiFi.status() != WL_CONNECTED)
     {
-            if(tries++ >=  MAX_WIFI_TRIES)
+            if(tries++ >=  attempts)
             {
                 Serial.print("Max WIFI tries occured");
                 return false;

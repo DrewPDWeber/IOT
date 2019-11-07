@@ -12,6 +12,6 @@ class WiFi_Controller
      char* Get_Password();
      void Set_SSID(char* ssid);
      */
-     bool Connect();
+     bool Connect(int attempts);
      void Disconnect();
 };
