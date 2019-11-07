@@ -12,7 +12,7 @@
 
 #include "ArduinoJson.h"
 
-#define debug // put into debug mode
+//#define debug // put into debug mode
 
 //mqtt data
 char * server = (char*)"192.168.1.101";
@@ -63,7 +63,7 @@ void setup()
   
 
   //Attempt to connect to wifi
-  if(!wifi_Controller.Connect(10))
+  if(wifi_Controller.Connect(20))
   {
       //Get the avaerage temp for 5 values
       float averageTemp = getAverageTemp(5);

@@ -44,7 +44,7 @@ bool WiFi_Controller::Connect(int attempts)
     {
             if(tries++ >=  attempts)
             {
-                Serial.print("Max WIFI tries occured");
+                Serial.print("Max WIFI tries occured\n");
                 return false;
             }
         
