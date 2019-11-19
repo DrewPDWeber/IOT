@@ -15,7 +15,7 @@
 //#define debug // put into debug mode
 
 //mqtt data
-char * server = (char*)"192.168.1.101";
+char * server = (char*)"192.168.1.102";
 char * user = (char*)"esp-8266";
 char * password = (char*)"rTt6WGYye6X3Hr";
 char * publishTopic = (char*)"sensor/freezer";
